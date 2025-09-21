@@ -38,8 +38,6 @@ Please list *your* actual configuration if it differs.
 | **Python Environment** | Conda 23.7 |
 | **Other Libraries** | GCC 11.4, CMake 3.29, OpenMPI 4.1 |
 
-All random seeds were fixed (`seed=42`).  
-
 ---
 
 ## Getting Started <a name="getting-started"></a>
