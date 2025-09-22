@@ -241,7 +241,6 @@ class HCD(nn.Module):
             with torch.no_grad():
                 vmf.fit(z_u.detach().cpu().numpy())
                 y_pred = vmf.labels_ if hasattr(vmf, "labels_") else vmf.predict(z_u.detach().cpu().numpy())
-                acc = Clustering_Metrics(y, y_pred).evaluationClusterModelFromLabel()[0]
 
             print(
                 f"[Epoch {ep+1}] "
@@ -251,11 +250,4 @@ class HCD(nn.Module):
                 f"clu={loss_clu.item():.4f} ent={loss_ent.item():.4f} "
             )
 
-            if acc > b_acc:
-                b_acc = acc
-                if vmf.xi.shape[0] == self.nClusters:
-                    self.assignment.cluster_centers.data = torch.tensor(vmf.xi, dtype=torch.float, device=z.device)
-                torch.save(self.state_dict(), os.path.join(run_dir, "b_acc.pk"))
-
-        print("ACC:", b_acc)
         return y_pred, y
