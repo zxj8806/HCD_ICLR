@@ -147,6 +147,10 @@ class HCD(nn.Module):
 
         if run_id is None:
             run_id = time.strftime("%Y%m%d_%H%M%S", time.localtime())
+            need_resume = False
+        else:
+            need_resume = os.path.isfile(os.path.join(base_dir, run_id, "epoch0.ckpt"))
+            
         run_dir = os.path.join(base_dir, run_id)
         os.makedirs(run_dir, exist_ok=True)
 
@@ -225,7 +229,6 @@ class HCD(nn.Module):
 
             loss = (
                 loss_rec_avg
-                + self.kl_hyp_weight * loss_kl
                 + self.align_weight * loss_aln_avg
                 + self.cluster_reg_weight * loss_clu
                 + self.entropy_reg_weight * loss_ent
@@ -238,12 +241,21 @@ class HCD(nn.Module):
             with torch.no_grad():
                 vmf.fit(z_u.detach().cpu().numpy())
                 y_pred = vmf.labels_ if hasattr(vmf, "labels_") else vmf.predict(z_u.detach().cpu().numpy())
+                acc = Clustering_Metrics(y, y_pred).evaluationClusterModelFromLabel()[0]
 
             print(
                 f"[Epoch {ep+1}] "
+                f"loss={loss.item():.4f} rec={loss_rec_avg.item():.4f} "
                 f"rec={loss_rec_avg.item():.4f} "
                 f"aln={loss_aln_avg.item():.4f} "
                 f"clu={loss_clu.item():.4f} ent={loss_ent.item():.4f} "
             )
 
+            if acc > b_acc:
+                b_acc = acc
+                if vmf.xi.shape[0] == self.nClusters:
+                    self.assignment.cluster_centers.data = torch.tensor(vmf.xi, dtype=torch.float, device=z.device)
+                torch.save(self.state_dict(), os.path.join(run_dir, "b_acc.pk"))
+
+        print("ACC:", b_acc)
         return y_pred, y
